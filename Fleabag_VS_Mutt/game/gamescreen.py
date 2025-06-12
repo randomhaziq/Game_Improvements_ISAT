@@ -1,4 +1,5 @@
 import pygame
+import math
 from .game_manager import GameManager
 
 class GameScreen:
@@ -19,15 +20,115 @@ class GameScreen:
         try:
             self.background = pygame.image.load("assets/images/backgrounds/background_backyard.jpg").convert()
             self.hud_image = pygame.image.load("assets/images/backgrounds/hud_top_bar.png").convert_alpha()
+            self.pointer_image = pygame.image.load("assets/images/character/pointer_arrow.png").convert_alpha()
+
         except:
             self.background = pygame.Surface((self.screen_width, self.screen_height))
             self.background.fill((20, 20, 40))  # fallback dark color
-        
+            self.pointer_image.fill((20, 20, 40))
+
         # Pause button rectangle (top-left)
         self.pause_button = pygame.Rect(10, 10, 50, 50)
+
+         # Example fence rectangles (x, y, width, height) — adjust to your level design
+        self.fence_rects = [
+        pygame.Rect(400, 450, 40, 100),  # Example fence at (400,450), 40x100 pixels
+        pygame.Rect(600, 430, 50, 120),
+        ]   
+
+        self.boosters = [
+            {"rect": pygame.Rect(72, 80, 60, 60), "desc": "Double Throws: Throw an object twice"},
+            {"rect": pygame.Rect(160, 80, 60, 50), "desc": "Power Throw: Increase the projectile throw power"},
+            {"rect": pygame.Rect(240, 80, 60, 60), "desc": "Stink Bomb: Deal damage over time"},
+            {"rect": pygame.Rect(330, 80, 60, 60), "desc": "Heal Up: Restore health points"},
+            {"rect": pygame.Rect(410, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height"},
+
+            {"rect": pygame.Rect(700, 80, 60, 60), "desc": "Double Throws: Throw an object twice"},
+            {"rect": pygame.Rect(800, 80, 60, 60), "desc": "Power Throw: Increase the projectile throw power"},
+            {"rect": pygame.Rect(870, 80, 60, 60), "desc": "Stink Bomb: Deal damage over time"},
+            {"rect": pygame.Rect(950, 80, 60, 60), "desc": "Heal Up: Restore health points"},
+            {"rect": pygame.Rect(1040, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height"},
+        ]
+    
+    def draw_turn_indicator_triangle(self):
+        # Get the current player's rect
+        player_rect = self.game_manager.current_player.rect
         
+        # Calculate the triangle points (a small downward triangle above player's head)
+        triangle_width = 20
+        triangle_height = 30
+        center_x = player_rect.centerx
+        top_y = player_rect.top - 10  # 10 pixels above the player's sprite
+        
+        # Points: left, right, bottom (pointing downward)
+        points = [
+            (center_x - triangle_width // 2, top_y),
+            (center_x + triangle_width // 2, top_y),
+            (center_x, top_y + triangle_height)
+        ]
+        
+        pygame.draw.polygon(self.screen, (255, 0, 0), points)  # Red color
+
+    def draw_aiming_pointer(self):
+        if self.paused: 
+            return
+        
+        # Get the current position of the mouse
+        mx, my = pygame.mouse.get_pos()
+
+        # Calculate the vector between the player's position and the mouse cursor
+        player_center = self.game_manager.current_player.rect.center
+        dx = mx - player_center[0]
+        dy = my - player_center[1]
+        
+        # Calculate the angle in radians
+        angle = math.atan2(dy, dx)
+
+        # Rotate the pointer image based on the angle
+        rotated_pointer = pygame.transform.rotate(self.pointer_image, -math.degrees(angle))
+
+        # Update the rect for the rotated image
+        pointer_rect = rotated_pointer.get_rect(center=(player_center[0], player_center[1] - 20))  # Move 20 pixels up
+
+        # Draw the rotated pointer image on the screen
+        self.screen.blit(rotated_pointer, pointer_rect.topleft)
+
+    def draw_tooltip(self, text, position):
+        font = pygame.font.SysFont(None, 24)
+        tooltip_surface = font.render(text, True, (255, 255, 255))
+        
+        # Background rect behind text
+        bg_rect = tooltip_surface.get_rect(topleft=(position[0] + 10, position[1] + 10))
+        bg_rect.inflate_ip(10, 10)  # padding
+        
+        # Draw semi-transparent black background
+        s = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)
+        s.fill((0, 0, 0, 180))
+        self.screen.blit(s, bg_rect.topleft)
+        
+        # Draw text on top
+        self.screen.blit(tooltip_surface, (bg_rect.x + 5, bg_rect.y + 5))
+
+    def check_booster_hover(self):
+        mouse_pos = pygame.mouse.get_pos()
+        for booster in self.boosters:
+            if booster["rect"].collidepoint(mouse_pos):
+                self.draw_tooltip(booster["desc"], mouse_pos)
+                break  # show only one tooltip at a time
+
+    def draw_pause_overlay(self):
+        overlay = pygame.Surface((self.screen_width, self.screen_height))
+        overlay.set_alpha(180)  # semi-transparent
+        overlay.fill((0, 0, 0))  # black
+        
+        self.screen.blit(overlay, (0, 0))
+        
+        font = pygame.font.SysFont(None, 80)
+        text = font.render("Game Paused", True, (255, 255, 255))
+        text_rect = text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
+        self.screen.blit(text, text_rect)
+
     def draw_health_bars(self):
-        # Positions and sizes - adjust to fit your HUD
         left_bar_pos = (75, 45)
         right_bar_pos = (self.screen_width - 475, 45)
         bar_width = 400
@@ -36,21 +137,24 @@ class GameScreen:
         red = (255, 0, 0)
         green = (0, 255, 0)
 
-        # Draw left player health bar background (red)
+        # Player 1 (left): shrink from right to left
         pygame.draw.rect(self.screen, red, (*left_bar_pos, bar_width, bar_height))
-        # Draw left player current health (green)
         health_width_left = int((self.game_manager.player1.health / 100) * bar_width)
-        pygame.draw.rect(self.screen, green, (left_bar_pos[0], left_bar_pos[1], health_width_left, bar_height))
-        pygame.draw.rect(self.screen, (255, 255, 255), (*left_bar_pos, bar_width, bar_height), 2)  # border
+        green_bar_x_left = left_bar_pos[0] + (bar_width - health_width_left)
+        pygame.draw.rect(self.screen, green, (green_bar_x_left, left_bar_pos[1], health_width_left, bar_height))
+        pygame.draw.rect(self.screen, (255, 255, 255), (*left_bar_pos, bar_width, bar_height), 2)
 
-        # Draw right player health bar background (red)
+        # Player 2 (right): shrink from left to right
         pygame.draw.rect(self.screen, red, (*right_bar_pos, bar_width, bar_height))
-        # Draw right player current health (green)
         health_width_right = int((self.game_manager.player2.health / 100) * bar_width)
         pygame.draw.rect(self.screen, green, (right_bar_pos[0], right_bar_pos[1], health_width_right, bar_height))
-        pygame.draw.rect(self.screen, (255, 255, 255), (*right_bar_pos, bar_width, bar_height), 2)  # border
-    
+        pygame.draw.rect(self.screen, (255, 255, 255), (*right_bar_pos, bar_width, bar_height), 2)
+
+
     def handle_event(self, event):
+        if self.game_manager.game_over:
+            return
+
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.paused = not self.paused
@@ -71,6 +175,9 @@ class GameScreen:
             # Forward other events when not paused
             self.game_manager.handle_event(event)
         
+        elif event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
+            self.game_manager.handle_event(event)
+        
     def move_current_player(self, direction):
         # Move current player left (-1) or right (1)
         current_player = self.game_manager.current_player
@@ -82,23 +189,26 @@ class GameScreen:
         current_player.rect.x = new_x
     
     def update(self):
-        if not self.paused:
-            self.game_manager.update()
+        if not self.paused and not self.game_manager.game_over:
+          self.game_manager.update()
     
     def draw(self):
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.hud_image, (0, 0)) 
 
         self.draw_health_bars()
-        
+
         self.game_manager.player1.draw(self.screen)
         self.game_manager.player2.draw(self.screen)
+
+        self.draw_turn_indicator_triangle()
+        self.game_manager.draw()
 
         # Draw pause button background (light blue with purple border)
         pause_rect = pygame.Rect(10, 10, 50, 50)
         pygame.draw.rect(self.screen, (173, 216, 230), pause_rect)  # Light blue
         pygame.draw.rect(self.screen, (138, 43, 226), pause_rect, 3)  # Purple border
-        
+
         # Draw pause icon (two white bars)
         bar_width, bar_height = 8, 30
         bar1_x = pause_rect.x + 12
@@ -106,3 +216,32 @@ class GameScreen:
         bar_y = pause_rect.y + 10
         pygame.draw.rect(self.screen, (255, 255, 255), (bar1_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(self.screen, (255, 255, 255), (bar2_x, bar_y, bar_width, bar_height))
+
+        if self.paused:
+            self.draw_pause_overlay()
+
+        if self.game_manager.game_over:
+            self.draw_winner()
+
+        self.check_booster_hover()
+
+        # Draw the aiming pointer (follows the mouse)
+        self.draw_aiming_pointer()
+
+
+    def draw_winner(self):
+        font = pygame.font.SysFont(None, 80)
+        if self.game_manager.player1.health <= 0:
+            winner_text = f"{self.game_manager.player2.name} Wins!"
+        elif self.game_manager.player2.health <= 0:
+            winner_text = f"{self.game_manager.player1.name} Wins!"
+        else:
+            return  # no winner yet
+        
+        text = font.render(winner_text, True, (255, 215, 0))  # gold color
+        text_rect = text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
+        self.screen.blit(text, text_rect)
+
+    def draw_fences(self):
+        for fence in self.fence_rects:
+            pygame.draw.rect(self.screen, (255, 0, 0), fence, 2)  # red outline

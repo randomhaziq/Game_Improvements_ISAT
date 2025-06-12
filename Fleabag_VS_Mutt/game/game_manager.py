@@ -1,4 +1,3 @@
-import random
 import math
 import pygame
 from .player import Player
@@ -16,45 +15,17 @@ class GameManager:
         self.current_player = self.player1
         self.opponent = self.player2
         self.projectiles = []
-        self.wind = random.uniform(-1.0, 1.0)
+        self.wind = 0
         self.charging = False
         self.charge_start_time = 0
-        self.fence_rect = None  # Add fence rectangle
+
+        self.fence_rects = [
+        pygame.Rect(400, 450, 40, 100),  # Example fence at (400,450), 40x100 pixels
+        pygame.Rect(600, 430, 50, 120),
+        ]   
         
-        # Booster states
-        self.boosters = {
-            'double_throw': False,
-            'power_boost': False,
-            'stink_bomb': False
-        }
-    def can_move_player(self, player, new_x):
-        if not self.fence_rect:
-            # If no fence set, no restriction
-            return True
+        self.game_over = False
 
-        fence_left = self.fence_rect.x - player.rect.width - 10
-        fence_right = self.fence_rect.x + self.fence_rect.width + 10
-
-        screen_width = self.screen.get_width()
-
-        # Check if new_x is within screen bounds
-        if new_x < 0 or new_x > screen_width - player.rect.width:
-            return False
-
-        # Fence collision logic:
-        if player.rect.x < fence_left and new_x > fence_left:
-            return False
-        if player.rect.x > fence_right and new_x < fence_right:
-            return False
-
-        return True
-
-    def set_fence(self, fence_rect):
-        self.fence_rect = fence_rect
-
-    def apply_booster(self, booster_name, active):
-        if booster_name in self.boosters:
-            self.boosters[booster_name] = active
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -63,17 +34,14 @@ class GameManager:
         elif event.type == pygame.MOUSEBUTTONUP and self.charging:
             self.charging = False
             charge_duration = (pygame.time.get_ticks() - self.charge_start_time) / 1000
-            
-            # Apply power boost if active
-            base_power = min(charge_duration * 10, 15)
-            power = base_power * 1.5 if self.boosters['power_boost'] else base_power
-            
+            power = min(charge_duration * 25, 50)
+
+
             mouse_x, mouse_y = pygame.mouse.get_pos()
             dx = mouse_x - self.current_player.rect.centerx
             dy = self.current_player.rect.centery - mouse_y
             angle = math.atan2(dy, dx)
-            
-            # Create projectile(s)
+
             proj = Projectile(
                 self.current_player.rect.centerx,
                 self.current_player.rect.centery,
@@ -83,70 +51,47 @@ class GameManager:
                 self.current_player.projectile_img
             )
             self.projectiles.append(proj)
-            
-            # Double throw booster
-            if self.boosters['double_throw']:
-                # Create second projectile with slightly different angle
-                angle2 = angle + 0.2  # Small angle offset
-                proj2 = Projectile(
-                    self.current_player.rect.centerx,
-                    self.current_player.rect.centery,
-                    angle2,
-                    power,
-                    self.wind,
-                    self.current_player.projectile_img
-                )
-                self.projectiles.append(proj2)
-                self.boosters['double_throw'] = False  # Reset after use
-            
-            # Stink bomb effect (larger damage area)
-            if self.boosters['stink_bomb']:
-                proj.is_stink_bomb = True
-                self.boosters['stink_bomb'] = False  # Reset after use
-            
-            # Reset power boost after use
-            if self.boosters['power_boost']:
-                self.boosters['power_boost'] = False
-    
+
     def update(self):
-        # Update all projectiles
-        for proj in self.projectiles[:]:  # iterate on a copy to safely remove items
+        if self.game_over:
+            return
+    
+        for proj in self.projectiles[:]:
             proj.update()
 
-            # Check if projectile hits fence/obstacle
-            if self.fence_rect and self.fence_rect.colliderect(proj.rect):
-                self.projectiles.remove(proj)
-                self.switch_turns()
-                continue
-
-            # Check if projectile hits opponent
+            # Check collision with opponent
             if self.opponent.rect.colliderect(proj.rect):
-                damage = 10
-                
-                # Check for stink bomb effect (larger damage)
-                if hasattr(proj, 'is_stink_bomb') and proj.is_stink_bomb:
-                    damage = 20
-                
-                self.opponent.hit(damage)
+                self.opponent.hit(10)
+                self.projectiles.remove(proj)
+                self.switch_turns()
+                break
+
+            # Check collision with fences
+            hit_fence = False
+            for fence in self.fence_rects:
+                if proj.rect.colliderect(fence):
+                    self.projectiles.remove(proj)
+                    self.switch_turns()
+                    hit_fence = True
+                    break  # no need to check other fences
+
+            if hit_fence:
+                continue  # skip further processing for this projectile
+
+            # Remove projectile if it falls below screen
+            if proj.y > self.screen.get_height():
                 self.projectiles.remove(proj)
                 self.switch_turns()
 
-            # Remove projectile if it falls below screen height
-            elif proj.y > 540:
-                self.projectiles.remove(proj)
-                self.switch_turns()
+            if self.player1.health <= 0 or self.player2.health <= 0:
+                self.game_over = True
+
 
     def draw(self):
-        # Draw players
         self.player1.draw(self.screen)
         self.player2.draw(self.screen)
-
-        # Draw projectiles
         for proj in self.projectiles:
             proj.draw(self.screen)
 
     def switch_turns(self):
-        # Switch current player and opponent
         self.current_player, self.opponent = self.opponent, self.current_player
-        # Reset or change wind randomly
-        self.wind = random.uniform(-1.0, 1.0)

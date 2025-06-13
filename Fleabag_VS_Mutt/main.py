@@ -49,11 +49,15 @@ back_customize_button_2p = pygame.Rect(46, 10, 123, 40)
 
 clock = pygame.time.Clock()
 current_screen = "menu"
-game_screen = None
+game_screen = GameScreen(screen, game_mode="1P", current_screen=current_screen)
 
 def play_music(file):
     pygame.mixer.music.load(file)
     pygame.mixer.music.play(-1)
+
+def set_current_screen(new_screen):
+    global current_screen
+    current_screen = new_screen
 
 play_music(music_1)
 

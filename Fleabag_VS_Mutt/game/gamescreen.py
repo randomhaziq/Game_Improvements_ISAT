@@ -3,12 +3,15 @@ import math
 from .game_manager import GameManager
 
 class GameScreen:
-    def __init__(self, screen, game_mode="1P"):
+    def __init__(self, screen, game_mode="1P", current_screen=None):
         self.screen = screen
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
         self.game_mode = game_mode
-        
+        self.current_screen = current_screen
+        self.retry_button = pygame.Rect(self.screen_width // 3 - 100, self.screen_height // 2 + 50, 200, 50)
+        self.main_menu_button = pygame.Rect(self.screen_width // 3 * 2 - 100, self.screen_height // 2 + 50, 200, 50)
+
         # Initialize game manager
         self.game_manager = GameManager(screen)
         
@@ -115,7 +118,6 @@ class GameScreen:
             if booster["rect"].collidepoint(mouse_pos):
                 self.draw_tooltip(booster["desc"], mouse_pos)
                 break  # show only one tooltip at a time
-
     def draw_pause_overlay(self):
         overlay = pygame.Surface((self.screen_width, self.screen_height))
         overlay.set_alpha(180)  # semi-transparent
@@ -127,6 +129,21 @@ class GameScreen:
         text = font.render("Game Paused", True, (255, 255, 255))
         text_rect = text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
         self.screen.blit(text, text_rect)
+
+        # Draw "retry" and "main menu" options in yellow
+        option_font = pygame.font.SysFont(None, 60)
+        retry_text = option_font.render("Retry", True, (255, 255, 0))  # Yellow color
+        menu_text = option_font.render("Main Menu", True, (255, 255, 0))  # Yellow color
+
+        retry_rect = retry_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2 + 100))
+        menu_rect = menu_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2 + 160))
+
+        self.screen.blit(retry_text, retry_rect)
+        self.screen.blit(menu_text, menu_rect)
+
+        # Store the clickable areas for the retry and menu options
+        self.retry_rect = retry_rect
+        self.menu_rect = menu_rect
 
     def draw_health_bars(self):
         left_bar_pos = (75, 45)
@@ -150,7 +167,6 @@ class GameScreen:
         pygame.draw.rect(self.screen, green, (right_bar_pos[0], right_bar_pos[1], health_width_right, bar_height))
         pygame.draw.rect(self.screen, (255, 255, 255), (*right_bar_pos, bar_width, bar_height), 2)
 
-
     def handle_event(self, event):
         if self.game_manager.game_over:
             return
@@ -158,6 +174,8 @@ class GameScreen:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.paused = not self.paused
+                if self.paused:
+                    return "pause_menu"
             elif not self.paused:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a:
                     self.move_current_player(-1)
@@ -166,18 +184,31 @@ class GameScreen:
         
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
-            if self.pause_button.collidepoint(mx, my):
+            if self.paused:
+                # Check if the user clicked on "retry" or "main menu"
+                if self.retry_rect.collidepoint(mx, my):
+                    self.restart_game()
+                elif self.menu_rect.collidepoint(mx, my):
+                    self.return_to_main_menu()
+                    return "menu"
+
+            elif self.pause_button.collidepoint(mx, my):
                 self.paused = not self.paused
             elif not self.paused:
-                # Forward other mouse events to game manager (e.g. shooting/projectiles)
                 self.game_manager.handle_event(event)
+        
         elif not self.paused:
-            # Forward other events when not paused
             self.game_manager.handle_event(event)
-        
-        elif event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP]:
-            self.game_manager.handle_event(event)
-        
+
+    def restart_game(self):
+        # Reset game state for a new round
+        self.game_manager = GameManager(self.screen)  # Re-initialize the game manager
+        self.paused = False  # Unpause the game
+
+    def return_to_main_menu(self):
+        self.current_screen = "menu"  # Modify current_screen directly
+        self.paused = False
+
     def move_current_player(self, direction):
         # Move current player left (-1) or right (1)
         current_player = self.game_manager.current_player

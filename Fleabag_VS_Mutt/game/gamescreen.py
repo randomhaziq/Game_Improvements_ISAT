@@ -35,8 +35,7 @@ class GameScreen:
 
          # Example fence rectangles (x, y, width, height) — adjust to your level design
         self.fence_rects = [
-        pygame.Rect(400, 450, 40, 100),  # Example fence at (400,450), 40x100 pixels
-        pygame.Rect(600, 430, 50, 120),
+            pygame.Rect(550, 320, 45, 270),
         ]   
 
         self.boosters = [
@@ -237,6 +236,7 @@ class GameScreen:
 
         # Draw pause button background (light blue with purple border)
         pause_rect = pygame.Rect(10, 10, 50, 50)
+        
         pygame.draw.rect(self.screen, (173, 216, 230), pause_rect)  # Light blue
         pygame.draw.rect(self.screen, (138, 43, 226), pause_rect, 3)  # Purple border
 

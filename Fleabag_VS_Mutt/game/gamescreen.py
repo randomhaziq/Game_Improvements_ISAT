@@ -168,6 +168,9 @@ class GameScreen:
         pygame.draw.rect(self.screen, (255, 255, 255), (*right_bar_pos, bar_width, bar_height), 2)
 
     def handle_event(self, event):
+        if self.game_manager.input_locked:
+            return  # Ignore all input while locked
+
         if self.game_manager.game_over:
             # Handle winner menu button click
             if event.type == pygame.MOUSEBUTTONDOWN:
@@ -188,6 +191,12 @@ class GameScreen:
         
         elif event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = pygame.mouse.get_pos()
+            # --- Booster click detection ---
+            for booster in self.boosters:
+                if booster["rect"].collidepoint(mx, my):
+                    self.activate_booster(booster["desc"])
+                    return  # Only one booster per click
+
             if self.paused:
                 # Check if the user clicked on "retry" or "main menu"
                 if self.retry_rect.collidepoint(mx, my):
@@ -203,6 +212,21 @@ class GameScreen:
         
         elif not self.paused:
             self.game_manager.handle_event(event)
+
+    def activate_booster(self, desc):
+        booster_key = desc.split()[0]  # e.g., "Double", "Power", etc.
+        player = self.game_manager.current_player
+
+        if booster_key in player.used_boosters:
+            # Optionally show a message: "Booster already used!"
+            return
+
+        player.used_boosters.add(booster_key)
+
+        if booster_key == "Double":
+            self.game_manager.double_throw_active = True
+        elif booster_key == "Power":
+            self.game_manager.power_throw_active = True
 
     def restart_game(self):
         # Reset game state for a new round

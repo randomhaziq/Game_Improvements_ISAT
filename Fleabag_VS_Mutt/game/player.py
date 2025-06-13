@@ -6,6 +6,7 @@ class Player:
         self.rect = self.image.get_rect(topleft=(x, y))
         self.health = 100
         self.name = name
+        self.used_boosters = set()  # Track used boosters
 
     def draw(self, screen):
         screen.blit(self.image, self.rect.topleft)

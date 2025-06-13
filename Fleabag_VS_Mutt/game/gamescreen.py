@@ -180,8 +180,6 @@ class GameScreen:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_ESCAPE:
                 self.paused = not self.paused
-                if self.paused:
-                    return "pause_menu"
             elif not self.paused:
                 if event.key == pygame.K_LEFT or event.key == pygame.K_a:
                     self.move_current_player(-1)

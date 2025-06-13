@@ -92,10 +92,7 @@ while running:
         elif current_screen == "game":
             if game_screen:
                 result = game_screen.handle_event(event)
-                if result == "pause_menu":
-                    current_screen = "menu"
-                    game_screen = None
-                elif result == "menu":
+                if result == "menu":
                     current_screen = "menu"
                     game_screen = None
 

@@ -14,8 +14,6 @@ how_to_bg = pygame.image.load("assets/images/backgrounds/how_to.jpg").convert()
 setting_bg = pygame.image.load("assets/images/backgrounds/setting.jpg").convert()
 background_bg = pygame.image.load("assets/images/backgrounds/choose_background.jpg").convert()
 choose_game_bg = pygame.image.load("assets/images/backgrounds/choose_game_interface.jpg").convert()
-choose_customize_1p_bg = pygame.image.load("assets/images/backgrounds/customization_interface_1p.jpg").convert()
-choose_customize_2p_bg = pygame.image.load("assets/images/backgrounds/customization_interface_2p.jpg").convert()
 
 # Music
 music_1 = "assets/sounds/music_1.mp3"
@@ -83,35 +81,13 @@ while running:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
                 if mode_button_1.collidepoint(mx, my):
-                    current_screen = "choose_customize_1p"
-                elif mode_button_2.collidepoint(mx, my):
-                    current_screen = "choose_customize_2p"
-                elif back_button.collidepoint(mx, my):
-                    current_screen = "menu"
-
-        elif current_screen == "choose_customize_1p":
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = pygame.mouse.get_pos()
-                if play_customize_button_1p.collidepoint(mx, my):
                     game_screen = GameScreen(screen, game_mode="1P")
                     current_screen = "game"
-                elif customize_button_1p.collidepoint(mx, my):
-                    pass
-                elif back_customize_button_1p.collidepoint(mx, my):
-                    current_screen = "choose_game"
-
-        elif current_screen == "choose_customize_2p":
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mx, my = pygame.mouse.get_pos()
-                if play_customize_button_2p.collidepoint(mx, my):
+                elif mode_button_2.collidepoint(mx, my):
                     game_screen = GameScreen(screen, game_mode="2P")
                     current_screen = "game"
-                elif cat_customize_button_2p.collidepoint(mx, my):
-                    pass
-                elif dog_customize_button_2p.collidepoint(mx, my):
-                    pass
-                elif back_customize_button_2p.collidepoint(mx, my):
-                    current_screen = "choose_game"
+                elif back_button.collidepoint(mx, my):
+                    current_screen = "menu"
 
         elif current_screen == "game":
             if game_screen:
@@ -166,10 +142,6 @@ while running:
         pygame.draw.rect(screen, (0, 0, 0), black_part) 
     elif current_screen == "choose_game":
         screen.blit(choose_game_bg, (0, 0))
-    elif current_screen == "choose_customize_1p":
-        screen.blit(choose_customize_1p_bg, (0, 0))
-    elif current_screen == "choose_customize_2p":
-        screen.blit(choose_customize_2p_bg, (0, 0))
     elif current_screen == "game" and game_screen:
         game_screen.update()
         game_screen.draw()

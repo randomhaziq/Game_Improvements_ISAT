@@ -12,6 +12,10 @@ class GameManager:
         self.player2 = Player(800, 400, "assets/images/character/mutt.png", "Mutt")
         self.player2.projectile_img = "assets/images/projectile_mutt.png"
         
+        #testing purpose
+        self.player1.health = 10
+        self.player2.health = 10
+
         self.current_player = self.player1
         self.opponent = self.player2
         self.projectiles = []
@@ -56,51 +60,53 @@ class GameManager:
             self.projectile_in_flight = True  # Block further shots until resolved
             
     def update(self):
-            if self.game_over:
-                return
+        if self.game_over:
+            return
 
-            # If there are no projectiles, allow firing again
-            if not self.projectiles:
-                self.projectile_in_flight = False
+        if not self.projectiles:
+            self.projectile_in_flight = False
 
-            for proj in self.projectiles[:]:
-                proj.update()
+        for proj in self.projectiles[:]:
+            proj.update()
 
-                # Check collision with opponent
-                if self.opponent.rect.colliderect(proj.rect):
-                    self.opponent.hit(10)
-                    self.projectiles.remove(proj)
-                    self.switch_turns()
-                    self.projectile_in_flight = False  # Allow next shot
-                    break
-
-                # Check collision with fences
-                hit_fence = False
-                for fence in self.fence_rects:
-                    if proj.rect.colliderect(fence):
-                        self.projectiles.remove(proj)
-                        self.switch_turns()
-                        self.projectile_in_flight = False  # Allow next shot
-                        hit_fence = True
-                        break  # no need to check other fences
-
-                if hit_fence:
-                    continue  # skip further processing for this projectile
-
-                # Remove projectile if it falls below screen
-                if proj.y > self.screen.get_height():
-                    self.projectiles.remove(proj)
-                    self.switch_turns()
-                    self.projectile_in_flight = False  # Allow next shot
-
-                # --- NEW: Remove projectile if it hits left or right edge ---
-                elif proj.x <= 0 or proj.x >= self.screen.get_width():
-                    self.projectiles.remove(proj)
-                    self.switch_turns()
-                    self.projectile_in_flight = False  # Allow next shot
-
+            # Check collision with opponent
+            if self.opponent.rect.colliderect(proj.rect):
+                self.opponent.hit(10)
+                # Check for game over immediately after hit
                 if self.player1.health <= 0 or self.player2.health <= 0:
                     self.game_over = True
+                self.projectiles.remove(proj)
+                self.switch_turns()
+                self.projectile_in_flight = False
+                break
+
+            # Check collision with fences
+            hit_fence = False
+            for fence in self.fence_rects:
+                if proj.rect.colliderect(fence):
+                    self.projectiles.remove(proj)
+                    self.switch_turns()
+                    self.projectile_in_flight = False  # Allow next shot
+                    hit_fence = True
+                    break  # no need to check other fences
+
+            if hit_fence:
+                continue  # skip further processing for this projectile
+
+            # Remove projectile if it falls below screen
+            if proj.y > self.screen.get_height():
+                self.projectiles.remove(proj)
+                self.switch_turns()
+                self.projectile_in_flight = False  # Allow next shot
+
+            # --- NEW: Remove projectile if it hits left or right edge ---
+            elif proj.x <= 0 or proj.x >= self.screen.get_width():
+                self.projectiles.remove(proj)
+                self.switch_turns()
+                self.projectile_in_flight = False  # Allow next shot
+
+            if self.player1.health <= 0 or self.player2.health <= 0:
+                self.game_over = True
 
     def draw(self):
         self.player1.draw(self.screen)

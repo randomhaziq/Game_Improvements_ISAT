@@ -8,6 +8,7 @@ class GameScreen:
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
         self.game_mode = game_mode
+        self.winner_menu_button = pygame.Rect(self.screen_width // 2 - 100, self.screen_height // 2 + 80, 200, 60)
         self.current_screen = current_screen
         self.retry_button = pygame.Rect(self.screen_width // 3 - 100, self.screen_height // 2 + 50, 200, 50)
         self.main_menu_button = pygame.Rect(self.screen_width // 3 * 2 - 100, self.screen_height // 2 + 50, 200, 50)
@@ -168,6 +169,12 @@ class GameScreen:
 
     def handle_event(self, event):
         if self.game_manager.game_over:
+            # Handle winner menu button click
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mx, my = pygame.mouse.get_pos()
+                if self.winner_menu_button.collidepoint(mx, my):
+                    self.return_to_main_menu()
+                    return "menu"
             return
 
         if event.type == pygame.KEYDOWN:
@@ -253,12 +260,11 @@ class GameScreen:
 
         if self.game_manager.game_over:
             self.draw_winner()
+        else:
+            # Only show aiming pointer if game is not over
+            self.draw_aiming_pointer()
 
         self.check_booster_hover()
-
-        # Draw the aiming pointer (follows the mouse)
-        self.draw_aiming_pointer()
-
 
     def draw_winner(self):
         font = pygame.font.SysFont(None, 80)
@@ -272,6 +278,14 @@ class GameScreen:
         text = font.render(winner_text, True, (255, 215, 0))  # gold color
         text_rect = text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
         self.screen.blit(text, text_rect)
+
+        # Draw "Main Menu" button
+        pygame.draw.rect(self.screen, (30, 144, 255), self.winner_menu_button)  # Dodger blue
+        pygame.draw.rect(self.screen, (255, 255, 255), self.winner_menu_button, 3)  # White border
+        btn_font = pygame.font.SysFont(None, 48)
+        btn_text = btn_font.render("Main Menu", True, (255, 255, 255))
+        btn_rect = btn_text.get_rect(center=self.winner_menu_button.center)
+        self.screen.blit(btn_text, btn_rect)
 
     def draw_fences(self):
         for fence in self.fence_rects:

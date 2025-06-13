@@ -1,5 +1,6 @@
 import math
 import pygame
+import random
 from .player import Player
 from .projectile import Projectile
 
@@ -12,10 +13,6 @@ class GameManager:
         self.player2 = Player(800, 400, "assets/images/character/mutt.png", "Mutt")
         self.player2.projectile_img = "assets/images/projectile_mutt.png"
         
-        #testing purpose
-        self.player1.health = 10
-        self.player2.health = 10
-
         self.current_player = self.player1
         self.opponent = self.player2
         self.projectiles = []
@@ -116,3 +113,4 @@ class GameManager:
 
     def switch_turns(self):
         self.current_player, self.opponent = self.opponent, self.current_player
+        self.wind = random.randint(-10, 10)  # Wind changes each turn

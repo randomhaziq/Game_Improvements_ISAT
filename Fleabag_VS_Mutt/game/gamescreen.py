@@ -234,6 +234,7 @@ class GameScreen:
         self.screen.blit(self.hud_image, (0, 0)) 
 
         self.draw_health_bars()
+        self.draw_wind_indicator()  # <-- Add this line
 
         self.game_manager.player1.draw(self.screen)
         self.game_manager.player2.draw(self.screen)
@@ -290,3 +291,76 @@ class GameScreen:
     def draw_fences(self):
         for fence in self.fence_rects:
             pygame.draw.rect(self.screen, (255, 0, 0), fence, 2)  # red outline
+
+    def draw_wind_indicator(self):
+        rect_x, rect_y, rect_w, rect_h = 484, 90, 188, 51
+
+        pygame.draw.rect(self.screen, (30, 30, 60), (rect_x, rect_y, rect_w, rect_h), border_radius=12)
+        pygame.draw.rect(self.screen, (100, 100, 180), (rect_x, rect_y, rect_w, rect_h), 2, border_radius=12)
+
+        font = pygame.font.SysFont(None, 28)
+        label = font.render("Wind:", True, (255, 255, 255))
+        label_rect = label.get_rect()
+        label_rect.midleft = (rect_x + 15, rect_y + rect_h // 2)
+        self.screen.blit(label, label_rect)
+
+        indicator_center_x = rect_x + 125
+        indicator_center_y = rect_y + rect_h // 2
+
+        wind = self.game_manager.wind
+        max_wind = 10
+        arrow_max_length = 40  # Adjust as needed
+        arrow_length = int((abs(wind) / max_wind) * arrow_max_length) if wind != 0 else 0
+        color = (0, 191, 255)
+        arrowhead_length = 14
+
+        # Draw vertical reference lines
+        # Center (tallest)
+        pygame.draw.line(
+            self.screen,
+            (200, 200, 255),
+            (indicator_center_x, rect_y + 8),
+            (indicator_center_x, rect_y + rect_h - 8),
+            2
+        )
+        # Left max (shorter)
+        left_x = indicator_center_x - arrow_max_length
+        pygame.draw.line(
+            self.screen,
+            (200, 200, 255),
+            (left_x, indicator_center_y - 10),
+            (left_x, indicator_center_y + 10),
+            2
+        )
+        # Right max (shorter)
+        right_x = indicator_center_x + arrow_max_length
+        pygame.draw.line(
+            self.screen,
+            (200, 200, 255),
+            (right_x, indicator_center_y - 10),
+            (right_x, indicator_center_y + 10),
+            2
+        )
+
+        if wind > 0:
+            start = (indicator_center_x, indicator_center_y)
+            line_end = (indicator_center_x + arrow_length - arrowhead_length, indicator_center_y)
+            triangle_tip = (indicator_center_x + arrow_length, indicator_center_y)
+            pygame.draw.line(self.screen, color, start, line_end, 5)
+            pygame.draw.polygon(self.screen, color, [
+                triangle_tip,
+                (triangle_tip[0] - arrowhead_length, triangle_tip[1] - 8),
+                (triangle_tip[0] - arrowhead_length, triangle_tip[1] + 8)
+            ])
+        elif wind < 0:
+            start = (indicator_center_x, indicator_center_y)
+            line_end = (indicator_center_x - arrow_length + arrowhead_length, indicator_center_y)
+            triangle_tip = (indicator_center_x - arrow_length, indicator_center_y)
+            pygame.draw.line(self.screen, color, start, line_end, 5)
+            pygame.draw.polygon(self.screen, color, [
+                triangle_tip,
+                (triangle_tip[0] + arrowhead_length, triangle_tip[1] - 8),
+                (triangle_tip[0] + arrowhead_length, triangle_tip[1] + 8)
+            ])
+        else:
+            pygame.draw.circle(self.screen, color, (indicator_center_x, indicator_center_y), 7)

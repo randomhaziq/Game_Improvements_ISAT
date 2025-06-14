@@ -8,10 +8,10 @@ class GameManager:
     def __init__(self, screen):
         self.screen = screen
         self.player1 = Player(100, 400, "assets/images/character/fleabag.png", "Fleabag")
-        self.player1.projectile_img = "assets/images/projectile_fleabag.png"
+        self.player1.projectile_img = "assets/images/projectiles/projectile_fleabag.png"
 
         self.player2 = Player(800, 400, "assets/images/character/mutt.png", "Mutt")
-        self.player2.projectile_img = "assets/images/projectile_mutt.png"
+        self.player2.projectile_img = "assets/images/projectiles/projectile_mutt.png"
         
         self.current_player = self.player1
         self.opponent = self.player2
@@ -208,7 +208,7 @@ class GameManager:
 
     def repeat_last_throw(self):
         # --- Add scale for Power Throw if needed ---
-        scale = 1.4 if self.power_throw_active else 1.0
+        scale = 1.5 if self.power_throw_active else 1.0
         proj = Projectile(
             self.current_player.rect.centerx,
             self.current_player.rect.centery,

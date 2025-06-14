@@ -15,18 +15,29 @@ setting_bg = pygame.image.load("assets/images/backgrounds/setting.jpg").convert(
 background_bg = pygame.image.load("assets/images/backgrounds/choose_background.jpg").convert()
 choose_game_bg = pygame.image.load("assets/images/backgrounds/choose_game_interface.jpg").convert()
 
-# Music
+# Music and Sound
 music_1 = "assets/sounds/music_1.mp3"
+drag_effect = pygame.mixer.Sound("assets/sounds/Drag_Button.mp3")
+click_effect = pygame.mixer.Sound("assets/sounds/Click_Button.mp3")
 
-# Slider properties for volume control
-slider_track = pygame.Rect(495, 277, 259, 4)
-slider_handle_radius = 9
-volume = 0.5
-slider_handle_x = slider_track.x + int(volume * slider_track.width)
-pygame.mixer.music.set_volume(volume)
-dragging = False
+# Music volume slider
+slider_track_music = pygame.Rect(500, 303, 259, 4)
+slider_handle_music_radius = 9
+music_volume = 0.5
+slider_handle_x_music = slider_track_music.x + int(music_volume * slider_track_music.width)
+dragging_music = False
+pygame.mixer.music.set_volume(music_volume)
 
-# Buttons (from both files)
+# Sound effect volume slider
+slider_track_sound = pygame.Rect(500, 407, 259, 4)
+slider_handle_sound_radius = 9
+sound_volume = 0.5
+slider_handle_x_sound = slider_track_sound.x + int(sound_volume * slider_track_sound.width)
+dragging_sound = False
+drag_effect.set_volume(sound_volume)
+click_effect.set_volume(sound_volume)
+
+# Buttons
 play_button = pygame.Rect(223, 387, 300, 70)
 background_button = pygame.Rect(639, 387, 300, 70)
 howto_button = pygame.Rect(215, 493, 300, 70)
@@ -36,18 +47,16 @@ mode_button_1 = pygame.Rect(365, 240, 175, 180)
 mode_button_2 = pygame.Rect(565, 240, 200, 180)
 back_button = pygame.Rect(37, 30, 131, 46)
 
-play_customize_button_1p = pygame.Rect(400, 495, 363, 80)
-customize_button_1p = pygame.Rect(465, 175, 233, 175)
-back_customize_button_1p = pygame.Rect(46, 10, 123, 40)
-
-play_customize_button_2p = pygame.Rect(400, 495, 363, 80)
-dog_customize_button_2p = pygame.Rect(365, 175, 206, 190)
-cat_customize_button_2p = pygame.Rect(590, 175, 206, 190)
-back_customize_button_2p = pygame.Rect(46, 10, 123, 40)
-
 clock = pygame.time.Clock()
 current_screen = "menu"
 game_screen = GameScreen(screen, game_mode="1P", current_screen=current_screen)
+
+# User name editing
+edit_name_icon = pygame.Rect(370, 160, 408, 80)
+user_name = "Enter your name"
+editing_name = False
+input_box = pygame.Rect(433, 223, 285, 40)
+input_text = ""
 
 def play_music(file):
     pygame.mixer.music.load(file)
@@ -69,12 +78,16 @@ while running:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
                 if play_button.collidepoint(mx, my):
+                    click_effect.play()
                     current_screen = "choose_game"
                 elif background_button.collidepoint(mx, my):
+                    click_effect.play()
                     current_screen = "background"
                 elif howto_button.collidepoint(mx, my):
+                    click_effect.play()
                     current_screen = "how_to"
                 elif setting_button.collidepoint(mx, my):
+                    click_effect.play()
                     current_screen = "setting"
 
         elif current_screen == "choose_game":
@@ -112,16 +125,42 @@ while running:
         elif current_screen == "setting":
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mx, my = pygame.mouse.get_pos()
-                if (event.pos[0] - slider_handle_x) ** 2 + (event.pos[1] - slider_track.centery) ** 2 <= slider_handle_radius ** 2:
-                    dragging = True
                 if back_button.collidepoint(mx, my):
+                    click_effect.play()
                     current_screen = "menu"
+                elif edit_name_icon.collidepoint(mx, my):
+                    click_effect.play()
+                    editing_name = True
+                elif (event.pos[0] - slider_handle_x_music) ** 2 + (event.pos[1] - slider_track_music.centery) ** 2 <= slider_handle_music_radius ** 2:
+                    dragging_music = True
+                elif (event.pos[0] - slider_handle_x_sound) ** 2 + (event.pos[1] - slider_track_sound.centery) ** 2 <= slider_handle_sound_radius ** 2:
+                    dragging_sound = True
+
             elif event.type == pygame.MOUSEBUTTONUP:
-                dragging = False
-            elif event.type == pygame.MOUSEMOTION and dragging:
-                slider_handle_x = max(slider_track.x, min(event.pos[0], slider_track.x + slider_track.width))
-                volume = (slider_handle_x - slider_track.x) / slider_track.width
-                pygame.mixer.music.set_volume(volume)
+                dragging_music = False
+                dragging_sound = False
+
+            elif event.type == pygame.MOUSEMOTION:
+                if dragging_music:
+                    slider_handle_x_music = max(slider_track_music.x, min(event.pos[0], slider_track_music.x + slider_track_music.width))
+                    music_volume = (slider_handle_x_music - slider_track_music.x) / slider_track_music.width
+                    pygame.mixer.music.set_volume(music_volume)
+                elif dragging_sound:
+                    slider_handle_x_sound = max(slider_track_sound.x, min(event.pos[0], slider_track_sound.x + slider_track_sound.width))
+                    sound_volume = (slider_handle_x_sound - slider_track_sound.x) / slider_track_sound.width
+                    drag_effect.set_volume(sound_volume)
+                    click_effect.set_volume(sound_volume)
+
+            elif event.type == pygame.KEYDOWN and editing_name:
+                if event.key == pygame.K_RETURN:
+                    click_effect.play()
+                    user_name = input_text if input_text.strip() else user_name
+                    input_text = ""
+                    editing_name = False
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    input_text += event.unicode
 
     # Draw screen
     if current_screen == "menu":
@@ -132,11 +171,29 @@ while running:
         screen.blit(background_bg, (0, 0))
     elif current_screen == "setting":
         screen.blit(setting_bg, (0, 0))
-        # Draw slider
-        pygame.draw.rect(screen, (200, 200, 200), slider_track)
-        pygame.draw.circle(screen, (0, 0, 0), (slider_handle_x, slider_track.centery), slider_handle_radius)
-        black_part = pygame.Rect(slider_track.x, slider_track.y, slider_handle_x - slider_track.x, slider_track.height)
-        pygame.draw.rect(screen, (0, 0, 0), black_part) 
+        # Draw music slider
+        pygame.draw.rect(screen, (200, 200, 200), slider_track_music)
+        pygame.draw.circle(screen, (0, 0, 0), (slider_handle_x_music, slider_track_music.centery), slider_handle_music_radius)
+        black_part_music = pygame.Rect(slider_track_music.x, slider_track_music.y, slider_handle_x_music - slider_track_music.x, slider_track_music.height)
+        pygame.draw.rect(screen, (0, 0, 0), black_part_music)
+        # Draw sound effect slider
+        pygame.draw.rect(screen, (200, 200, 200), slider_track_sound)
+        pygame.draw.circle(screen, (0, 0, 0), (slider_handle_x_sound, slider_track_sound.centery), slider_handle_sound_radius)
+        black_part_sound = pygame.Rect(slider_track_sound.x, slider_track_sound.y, slider_handle_x_sound - slider_track_sound.x, slider_track_sound.height)
+        pygame.draw.rect(screen, (0, 0, 0), black_part_sound)
+        # Display the user's name
+        font = pygame.font.Font(None, 37)
+        name_surface = font.render(f"{user_name}", True, (0, 0, 0))
+        name_rect = name_surface.get_rect(center=(input_box.centerx, input_box.top - 20))
+        screen.blit(name_surface, name_rect)
+        # Draw the input box if editing
+        if editing_name:
+            pygame.draw.rect(screen, (255, 255, 255), input_box)
+            pygame.draw.rect(screen, (0, 0, 0), input_box, 2)
+            input_surface = font.render(input_text, True, (0, 0, 0))
+            input_rect = input_surface.get_rect(center=input_box.center)
+            screen.blit(input_surface, input_rect)
+
     elif current_screen == "choose_game":
         screen.blit(choose_game_bg, (0, 0))
     elif current_screen == "game" and game_screen:

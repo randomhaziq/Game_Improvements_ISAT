@@ -43,6 +43,10 @@ class GameManager:
 
         self.last_throw_valid = False  # Add this line
 
+        # New attributes for wall heightening
+        self.wall_heightened_active = False
+        self.wall_heightened_turns = 0
+
     def handle_event(self, event):
         if self.game_over:
             return
@@ -54,7 +58,7 @@ class GameManager:
         elif event.type == pygame.MOUSEBUTTONUP and self.charging and not self.projectile_in_flight:
             self.charging = False
             charge_duration = (pygame.time.get_ticks() - self.charge_start_time) / 1000
-            power = min(charge_duration * 25, 50) * self.power_boost
+            power = min(charge_duration * 25, 50)  # No multiplier for launching speed
             self.power_boost = 1.0  # Reset after use
 
             mouse_x, mouse_y = pygame.mouse.get_pos()
@@ -155,6 +159,12 @@ class GameManager:
         if turn_should_end and not self.projectile_in_flight and not self.double_throw_pending and not self.input_locked:
             self.switch_turns()
 
+        # Wall heightened booster: decrease turn counter and deactivate after 1 turn
+        if self.wall_heightened_active:
+            self.wall_heightened_turns -= 1
+            if self.wall_heightened_turns <= 0:
+                self.wall_heightened_active = False
+
     def draw(self):
         self.player1.draw(self.screen)
         self.player2.draw(self.screen)
@@ -170,6 +180,10 @@ class GameManager:
             self.current_player.stink_bomb_turns -= 1
 
     def handle_projectile_hit(self, damage, target):
+        # Apply power throw booster to damage only
+        if self.power_throw_active:
+            damage = int(damage * 2.5)
+            self.power_throw_active = False  # Reset after use
         if self.stink_bomb_active:
             target.stink_bomb_turns = 3
             self.stink_bomb_active = False

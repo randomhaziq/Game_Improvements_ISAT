@@ -227,9 +227,12 @@ class GameScreen:
         elif booster_key == "Power":
             self.game_manager.power_throw_active = True
         elif booster_key == "Stink":
-            self.game_manager.stink_bomb_active = True  # <-- Add this line
+            self.game_manager.stink_bomb_active = True
         elif desc.startswith("Heal Up"):
             self.game_manager.heal_up(20)
+        elif booster_key == "Wall":
+            self.game_manager.wall_heightened_active = True
+            self.game_manager.wall_heightened_turns = 1
 
     def restart_game(self):
         # Reset game state for a new round
@@ -241,14 +244,31 @@ class GameScreen:
         self.paused = False
 
     def move_current_player(self, direction):
-        # Move current player left (-1) or right (1)
-        current_player = self.game_manager.current_player
-        move_speed = 5
-        new_x = current_player.rect.x + (direction * move_speed)
-        
-        # Keep player inside screen horizontally
-        new_x = max(0, min(new_x, self.screen_width - current_player.rect.width))
-        current_player.rect.x = new_x
+        player = self.game_manager.current_player
+        step = 10  # or your movement step
+
+        new_x = player.rect.x + (step if direction == 1 else -step)
+
+        # Prevent going offscreen
+        screen_width = self.screen.get_width()
+        if new_x < 0:
+            new_x = 0
+        if new_x + player.rect.width > screen_width:
+            new_x = screen_width - player.rect.width
+
+        # Fence logic: Only apply to the correct player and direction
+        fence = self.game_manager.fence_rects[0]  # Only one fence in your game
+
+        if player == self.game_manager.player1:
+            # Fleabag: can't move right past the left side of the fence
+            if direction == 1 and player.rect.right <= fence.left and new_x + player.rect.width > fence.left:
+                new_x = fence.left - player.rect.width
+        elif player == self.game_manager.player2:
+            # Mutt: can't move left past the right side of the fence
+            if direction == -1 and player.rect.left >= fence.right and new_x < fence.right:
+                new_x = fence.right
+
+        player.rect.x = new_x
     
     def update(self):
         if not self.paused and not self.game_manager.game_over:
@@ -259,7 +279,9 @@ class GameScreen:
         self.screen.blit(self.hud_image, (0, 0)) 
 
         self.draw_health_bars()
-        self.draw_wind_indicator()  # <-- Add this line
+        self.draw_wind_indicator()
+
+        self.draw_fences()  # <-- Draw fences (and black rectangle) AFTER background
 
         self.game_manager.player1.draw(self.screen)
         self.game_manager.player2.draw(self.screen)
@@ -314,8 +336,16 @@ class GameScreen:
         self.screen.blit(btn_text, btn_rect)
 
     def draw_fences(self):
-        for fence in self.fence_rects:
-            pygame.draw.rect(self.screen, (255, 0, 0), fence, 2)  # red outline
+        for fence in self.game_manager.fence_rects:
+            # Draw the original fence outline
+            pygame.draw.rect(self.screen, (0, 0, 0), fence, 2)
+
+            # Draw a full black rectangle with increased height if wall heightened is active
+            if self.game_manager.wall_heightened_active:
+                # Increase height by 40 pixels (adjust as needed)
+                heightened_height = fence.height + 40
+                heightened_rect = pygame.Rect(fence.x, fence.y, fence.width, heightened_height)
+                pygame.draw.rect(self.screen, (0, 0, 0), heightened_rect)
 
     def draw_wind_indicator(self):
         rect_x, rect_y, rect_w, rect_h = 484, 90, 188, 51

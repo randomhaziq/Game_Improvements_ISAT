@@ -284,16 +284,24 @@ class GameScreen:
             if not getattr(self.game_manager, "ai_action_started", False):
                 # AI Booster Logic
                 ai_boosters = [
-                    "Double Throw",
-                    "Power Throw",
-                    "Heal Up",
-                    "Stink Bomb",
-                    "Heighten Wall"
+                    "Double",
+                    "Power",
+                    "Heal",
+                    "Stink",
+                    "Wall"
                 ]
                 available_boosters = [b for b in ai_boosters if b not in self.game_manager.current_player.used_boosters]
                 if available_boosters:
                     chosen_booster = random.choice(available_boosters)
-                    self.activate_booster(chosen_booster)
+                    # Pass the full description string that activate_booster expects
+                    booster_desc_map = {
+                        "Double": "Double Throws: Throw the projectile twice",
+                        "Power": "Power Throw: Increase the projectile throw power",
+                        "Heal": "Heal Up: Restore health points",
+                        "Stink": "Stink Bomb: Deal damage over turns",
+                        "Wall": "Wall Heightened: Increase the wall height for opponent"
+                    }
+                    self.activate_booster(booster_desc_map[chosen_booster])
                     self.game_manager.current_player.used_boosters.add(chosen_booster)
 
                 # Mark that AI has started its action this turn

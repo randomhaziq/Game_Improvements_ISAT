@@ -253,16 +253,27 @@ class GameManager:
         steps = random.randint(1, 5)
         direction = random.choice([-1, 1])
         step_size = 10
+        min_y = 320  # Minimum y position to avoid going too low
 
         for _ in range(steps):
             new_x = self.current_player.rect.x + direction * step_size
             if 0 < new_x < self.screen.get_width() - self.current_player.rect.width:
                 self.current_player.rect.x = new_x
 
-        # Simple AI: random angle and power
-        angle = random.uniform(0.5, 1.2)
-        power = random.uniform(15, 35) * 0.6  # Reduced AI power
-        scale = 1.0
+        # Try up to 10 times to get a shot that reaches at least min_y
+        for _ in range(10):
+            angle = random.uniform(0.5, 1.2)
+            power = random.uniform(15, 35) * 0.6  # Reduced AI power
+            velocity_scale = 10  # Use your game's scale if different
+            vy = -math.sin(angle) * power * velocity_scale
+            gravity = 9.81  # Use your game's gravity
+
+            # Calculate peak y position (lower y is higher on screen)
+            start_y = self.current_player.rect.centery
+            peak_y = start_y + (vy ** 2) / (2 * gravity)  # downward is positive
+
+            if peak_y <= min_y:
+                break  # Found a suitable shot
 
         proj = Projectile(
             self.current_player.rect.centerx,
@@ -271,7 +282,7 @@ class GameManager:
             power,
             self.wind,
             self.current_player.projectile_img,
-            scale=scale
+            scale=1.0
         )
         self.projectiles.append(proj)
         self.projectile_in_flight = True

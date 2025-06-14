@@ -4,13 +4,19 @@ import math
 class Projectile:
     GRAVITY = 9.81  # pixels per second^2 (adjust as needed)
 
-    def __init__(self, x, y, angle, power, wind, image_path):
+    def __init__(self, x, y, angle, power, wind, image_path, scale=1.0):
         self.x = x
         self.y = y
         self.angle = angle
         self.power = power
         self.wind = wind
-        self.image = pygame.image.load(image_path).convert_alpha()
+        original_image = pygame.image.load(image_path).convert_alpha()
+        if scale != 1.0:
+            w, h = original_image.get_size()
+            new_size = (int(w * scale), int(h * scale))
+            self.image = pygame.transform.scale(original_image, new_size)
+        else:
+            self.image = original_image
         self.rect = self.image.get_rect(center=(x, y))
 
         # Velocity components (pixels per frame)
@@ -36,5 +42,5 @@ class Projectile:
 
     def draw(self, screen):
         screen.blit(self.image, self.rect.topleft)
-        
-    
+
+

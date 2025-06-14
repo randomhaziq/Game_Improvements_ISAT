@@ -40,17 +40,17 @@ class GameScreen:
         ]   
 
         self.boosters = [
-            {"rect": pygame.Rect(72, 80, 60, 60), "desc": "Double Throws: Throw an object twice"},
+            {"rect": pygame.Rect(72, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice"},
             {"rect": pygame.Rect(160, 80, 60, 50), "desc": "Power Throw: Increase the projectile throw power"},
-            {"rect": pygame.Rect(240, 80, 60, 60), "desc": "Stink Bomb: Deal damage over time"},
+            {"rect": pygame.Rect(240, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns"},
             {"rect": pygame.Rect(330, 80, 60, 60), "desc": "Heal Up: Restore health points"},
-            {"rect": pygame.Rect(410, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height"},
+            {"rect": pygame.Rect(410, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent"},
 
-            {"rect": pygame.Rect(700, 80, 60, 60), "desc": "Double Throws: Throw an object twice"},
+            {"rect": pygame.Rect(700, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice"},
             {"rect": pygame.Rect(800, 80, 60, 60), "desc": "Power Throw: Increase the projectile throw power"},
-            {"rect": pygame.Rect(870, 80, 60, 60), "desc": "Stink Bomb: Deal damage over time"},
+            {"rect": pygame.Rect(870, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns"},
             {"rect": pygame.Rect(950, 80, 60, 60), "desc": "Heal Up: Restore health points"},
-            {"rect": pygame.Rect(1040, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height"},
+            {"rect": pygame.Rect(1040, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent"},
         ]
     
     def draw_turn_indicator_triangle(self):
@@ -214,7 +214,7 @@ class GameScreen:
             self.game_manager.handle_event(event)
 
     def activate_booster(self, desc):
-        booster_key = desc.split()[0]  # e.g., "Double", "Power", "Stink", etc.
+        booster_key = desc.split()[0]
         player = self.game_manager.current_player
 
         if booster_key in player.used_boosters:
@@ -231,8 +231,7 @@ class GameScreen:
         elif desc.startswith("Heal Up"):
             self.game_manager.heal_up(20)
         elif booster_key == "Wall":
-            self.game_manager.wall_heightened_active = True
-            self.game_manager.wall_heightened_turns = 1
+            self.game_manager.wall_heightened_pending = True 
 
     def restart_game(self):
         # Reset game state for a new round
@@ -281,8 +280,6 @@ class GameScreen:
         self.draw_health_bars()
         self.draw_wind_indicator()
 
-        self.draw_fences()  # <-- Draw fences (and black rectangle) AFTER background
-
         self.game_manager.player1.draw(self.screen)
         self.game_manager.player2.draw(self.screen)
 
@@ -291,7 +288,6 @@ class GameScreen:
 
         # Draw pause button background (light blue with purple border)
         pause_rect = pygame.Rect(10, 10, 50, 50)
-        
         pygame.draw.rect(self.screen, (173, 216, 230), pause_rect)  # Light blue
         pygame.draw.rect(self.screen, (138, 43, 226), pause_rect, 3)  # Purple border
 
@@ -313,6 +309,9 @@ class GameScreen:
             self.draw_aiming_pointer()
 
         self.check_booster_hover()
+
+        # --- Draw fences LAST so they appear on top ---
+        self.draw_fences()
 
     def draw_winner(self):
         font = pygame.font.SysFont(None, 80)
@@ -336,16 +335,9 @@ class GameScreen:
         self.screen.blit(btn_text, btn_rect)
 
     def draw_fences(self):
-        for fence in self.game_manager.fence_rects:
-            # Draw the original fence outline
-            pygame.draw.rect(self.screen, (0, 0, 0), fence, 2)
-
-            # Draw a full black rectangle with increased height if wall heightened is active
-            if self.game_manager.wall_heightened_active:
-                # Increase height by 40 pixels (adjust as needed)
-                heightened_height = fence.height + 40
-                heightened_rect = pygame.Rect(fence.x, fence.y, fence.width, heightened_height)
-                pygame.draw.rect(self.screen, (0, 0, 0), heightened_rect)
+        if self.game_manager.wall_heightened_active:
+            for fence in self.game_manager.fence_rects:
+                pygame.draw.rect(self.screen, (0, 0, 0), fence)
 
     def draw_wind_indicator(self):
         rect_x, rect_y, rect_w, rect_h = 484, 90, 188, 51

@@ -23,9 +23,10 @@ class GameManager:
         self.input_locked = False
 
         self.fence_rects = [
-            pygame.Rect(550, 320, 45, 270),
+            pygame.Rect(550, 320, 45, 270),   # Existing fence
         ]   
-        
+        self.original_fence_heights = [fence.height for fence in self.fence_rects] 
+
         self.game_over = False
 
         # --- NEW: Power-up attributes ---
@@ -46,6 +47,7 @@ class GameManager:
         # New attributes for wall heightening
         self.wall_heightened_active = False
         self.wall_heightened_turns = 0
+        self.wall_heightened_pending = False 
 
     def handle_event(self, event):
         if self.game_over:
@@ -70,13 +72,17 @@ class GameManager:
             self.last_throw_angle = angle
             self.last_throw_power = power
 
+            # --- Add scale for Power Throw ---
+            scale = 1.4 if self.power_throw_active else 1.0
+
             proj = Projectile(
                 self.current_player.rect.centerx,
                 self.current_player.rect.centery,
                 angle,
                 power,
                 self.wind,
-                self.current_player.projectile_img
+                self.current_player.projectile_img,
+                scale=scale
             )
             self.projectiles.append(proj)
             self.projectile_in_flight = True  # Block further shots until resolved
@@ -159,12 +165,6 @@ class GameManager:
         if turn_should_end and not self.projectile_in_flight and not self.double_throw_pending and not self.input_locked:
             self.switch_turns()
 
-        # Wall heightened booster: decrease turn counter and deactivate after 1 turn
-        if self.wall_heightened_active:
-            self.wall_heightened_turns -= 1
-            if self.wall_heightened_turns <= 0:
-                self.wall_heightened_active = False
-
     def draw(self):
         self.player1.draw(self.screen)
         self.player2.draw(self.screen)
@@ -176,8 +176,25 @@ class GameManager:
         self.wind = random.randint(-10, 10)
         # Apply DOT at the start of the new current player's turn
         if hasattr(self.current_player, "stink_bomb_turns") and self.current_player.stink_bomb_turns > 0:
-            self.current_player.hit(10)  # DOT damage
+            self.current_player.hit(10)
             self.current_player.stink_bomb_turns -= 1
+
+        # --- Wall booster logic ---
+        # 1. If pending, heighten now for this new turn
+        if self.wall_heightened_pending:
+            self.heighten_fences(amount=60)
+            self.wall_heightened_active = True
+            self.wall_heightened_turns = 1
+            self.wall_heightened_pending = False
+
+        # 2. If active, decrement and revert if expired
+        elif self.wall_heightened_active:
+            self.wall_heightened_turns -= 1
+            if self.wall_heightened_turns <= 0:
+                self.wall_heightened_active = False
+                for fence, orig_height in zip(self.fence_rects, self.original_fence_heights):
+                    fence.y += (fence.height - orig_height)
+                    fence.height = orig_height
 
     def handle_projectile_hit(self, damage, target):
         # Apply power throw booster to damage only
@@ -190,16 +207,25 @@ class GameManager:
         target.hit(damage)
 
     def repeat_last_throw(self):
+        # --- Add scale for Power Throw if needed ---
+        scale = 1.4 if self.power_throw_active else 1.0
         proj = Projectile(
             self.current_player.rect.centerx,
             self.current_player.rect.centery,
             self.last_throw_angle,
             self.last_throw_power,
             self.wind,
-            self.current_player.projectile_img
+            self.current_player.projectile_img,
+            scale=scale
         )
         self.projectiles.append(proj)
         self.projectile_in_flight = True
 
     def heal_up(self, amount=20):
         self.current_player.health = min(self.current_player.health + amount, 100)  # Assuming max health is 100
+
+    def heighten_fences(self, amount=60):
+        for i, fence in enumerate(self.fence_rects):
+            if fence.height == self.original_fence_heights[i]:
+                fence.height += amount
+                fence.y -= amount  # Move up so the bottom stays in place

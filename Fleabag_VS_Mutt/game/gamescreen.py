@@ -1,5 +1,6 @@
 import pygame
 import math
+import random
 from .game_manager import GameManager
 
 class GameScreen:
@@ -14,7 +15,7 @@ class GameScreen:
         self.main_menu_button = pygame.Rect(self.screen_width // 3 * 2 - 100, self.screen_height // 2 + 50, 200, 50)
 
         # Initialize game manager
-        self.game_manager = GameManager(screen)
+        self.game_manager = GameManager(screen, game_mode=game_mode)
         
         # Game state
         self.paused = False
@@ -270,9 +271,48 @@ class GameScreen:
         player.rect.x = new_x
     
     def update(self):
-        if not self.paused and not self.game_manager.game_over:
-          self.game_manager.update()
-    
+        if self.paused or self.game_manager.game_over:
+            return
+
+        # --- AI Turn Logic for 1P Mode ---
+        if (
+            self.game_mode == "1P"
+            and self.game_manager.current_player == self.game_manager.player1
+            and not self.game_manager.projectile_in_flight
+        ):
+            # Only act if AI is not already moving or firing
+            if not getattr(self.game_manager, "ai_action_started", False):
+                # AI Booster Logic
+                ai_boosters = [
+                    "Double Throw",
+                    "Power Throw",
+                    "Heal Up",
+                    "Stink Bomb",
+                    "Heighten Wall"
+                ]
+                available_boosters = [b for b in ai_boosters if b not in self.game_manager.current_player.used_boosters]
+                if available_boosters:
+                    chosen_booster = random.choice(available_boosters)
+                    self.activate_booster(chosen_booster)
+                    self.game_manager.current_player.used_boosters.add(chosen_booster)
+
+                # Mark that AI has started its action this turn
+                self.game_manager.ai_action_started = True
+
+                # Start AI movement/firing
+                self.game_manager.ai_move()
+            return
+
+        # Reset AI action flag when it's not AI's turn
+        if getattr(self.game_manager, "ai_action_started", False) and (
+            self.game_manager.current_player != self.game_manager.player1
+            or self.game_manager.projectile_in_flight
+        ):
+            self.game_manager.ai_action_started = False
+
+        # --- Regular Game Update ---
+        self.game_manager.update()
+
     def draw(self):
         self.screen.blit(self.background, (0, 0))
         self.screen.blit(self.hud_image, (0, 0)) 

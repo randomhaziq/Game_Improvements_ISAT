@@ -5,15 +5,24 @@ from .player import Player
 from .projectile import Projectile
 
 class GameManager:
-    def __init__(self, screen):
+    def __init__(self, screen, game_mode="1P"):
         self.screen = screen
-        self.player1 = Player(100, 400, "assets/images/character/fleabag.png", "Fleabag")
-        self.player1.projectile_img = "assets/images/projectiles/projectile_fleabag.png"
+        self.game_mode = game_mode
 
-        self.player2 = Player(800, 400, "assets/images/character/mutt.png", "Mutt")
-        self.player2.projectile_img = "assets/images/projectiles/projectile_mutt.png"
-        
-        self.current_player = self.player1
+        if game_mode == "1P":
+            # AI is player1, human is player2
+            self.player1 = Player(100, 400, "assets/images/character/fleabag.png", "Fleabag (AI)")
+            self.player1.projectile_img = "assets/images/projectiles/projectile_fleabag.png"
+            self.player2 = Player(800, 400, "assets/images/character/mutt.png", "Mutt (You)")
+            self.player2.projectile_img = "assets/images/projectiles/projectile_mutt.png"
+        else:
+            # Both are humans
+            self.player1 = Player(100, 400, "assets/images/character/fleabag.png", "Fleabag")
+            self.player1.projectile_img = "assets/images/projectiles/projectile_fleabag.png"
+            self.player2 = Player(800, 400, "assets/images/character/mutt.png", "Mutt")
+            self.player2.projectile_img = "assets/images/projectiles/projectile_mutt.png"
+
+        self.current_player = self.player1  # AI always starts in 1P mode
         self.opponent = self.player2
         self.projectiles = []
         self.wind = 0
@@ -51,6 +60,10 @@ class GameManager:
 
     def handle_event(self, event):
         if self.game_over:
+            return
+
+        # In 1P mode, only allow input if it's player2's (human's) turn
+        if self.game_mode == "1P" and self.current_player != self.player2:
             return
 
         # Only allow charging/firing if no projectile is in flight
@@ -97,6 +110,11 @@ class GameManager:
 
     def update(self):
         if self.game_over:
+            return
+
+        # In 1P mode, let AI act when it's player1's turn
+        if self.game_mode == "1P" and self.current_player == self.player1 and not self.projectile_in_flight:
+            self.ai_move()
             return
 
         turn_should_end = False
@@ -229,3 +247,31 @@ class GameManager:
             if fence.height == self.original_fence_heights[i]:
                 fence.height += amount
                 fence.y -= amount  # Move up so the bottom stays in place
+
+    def ai_move(self):
+        # Randomly decide to move left or right for a few steps before firing
+        steps = random.randint(1, 5)
+        direction = random.choice([-1, 1])
+        step_size = 10
+
+        for _ in range(steps):
+            new_x = self.current_player.rect.x + direction * step_size
+            if 0 < new_x < self.screen.get_width() - self.current_player.rect.width:
+                self.current_player.rect.x = new_x
+
+        # Simple AI: random angle and power
+        angle = random.uniform(0.5, 1.2)
+        power = random.uniform(15, 35) * 0.6  # Reduced AI power
+        scale = 1.0
+
+        proj = Projectile(
+            self.current_player.rect.centerx,
+            self.current_player.rect.centery,
+            angle,
+            power,
+            self.wind,
+            self.current_player.projectile_img,
+            scale=scale
+        )
+        self.projectiles.append(proj)
+        self.projectile_in_flight = True

@@ -7,6 +7,7 @@ class Player:
         self.health = 100
         self.name = name
         self.used_boosters = set()  # Track used boosters
+        self.stink_bomb_turns = 0
 
     def draw(self, screen):
         screen.blit(self.image, self.rect.topleft)

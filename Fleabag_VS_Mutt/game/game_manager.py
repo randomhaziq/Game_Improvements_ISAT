@@ -39,6 +39,10 @@ class GameManager:
         self.last_throw_angle = 0
         self.last_throw_power = 0
 
+        self.stink_bomb_active = False
+
+        self.last_throw_valid = False  # Add this line
+
     def handle_event(self, event):
         if self.game_over:
             return
@@ -72,7 +76,12 @@ class GameManager:
             )
             self.projectiles.append(proj)
             self.projectile_in_flight = True  # Block further shots until resolved
-            
+
+            # Only activate double throw if booster is active
+            if self.double_throw_active:
+                self.double_throw_pending = True
+                self.double_throw_active = False
+
     def apply_stink_bomb(self):
         self.stink_bomb_turns = 3  # Damage for 3 turns
 
@@ -90,12 +99,13 @@ class GameManager:
 
             # Check collision with opponent
             if self.opponent.rect.colliderect(proj.rect):
-                self.handle_projectile_hit(20, self.opponent)
+                self.handle_projectile_hit(10, self.opponent)
                 if self.player1.health <= 0 or self.player2.health <= 0:
                     self.game_over = True
                 self.projectiles.remove(proj)
                 self.projectile_in_flight = False
-                turn_should_end = True  # Mark turn to end after double throw check
+                turn_should_end = True
+                self.last_throw_valid = True  # Only set to True on valid hit
                 break
 
             # Check collision with fences
@@ -106,6 +116,7 @@ class GameManager:
                     self.projectile_in_flight = False
                     hit_fence = True
                     turn_should_end = True
+                    self.last_throw_valid = False  # Not a valid hit
                     break
 
             if hit_fence:
@@ -116,31 +127,29 @@ class GameManager:
                 self.projectiles.remove(proj)
                 self.projectile_in_flight = False
                 turn_should_end = True
+                self.last_throw_valid = False  # Not a valid hit
 
             # Remove projectile if it hits left or right edge
             elif proj.x <= 0 or proj.x >= self.screen.get_width():
                 self.projectiles.remove(proj)
                 self.projectile_in_flight = False
                 turn_should_end = True
+                self.last_throw_valid = False  # Not a valid hit
 
             if self.player1.health <= 0 or self.player2.health <= 0:
                 self.game_over = True
 
-        if self.stink_bomb_turns > 0:
-            self.opponent.hit(5)
-            self.stink_bomb_turns -= 1
-
         # Handle double throw
-        if self.double_throw_pending and not self.projectile_in_flight:
+        if self.double_throw_pending and not self.projectile_in_flight and self.last_throw_valid:
             self.input_locked = True
-            self.repeat_last_throw()  # Start the second throw
+            self.repeat_last_throw()
             self.double_throw_pending = False
-            turn_should_end = False  # Don't end turn yet
+            turn_should_end = False
 
         # After the second throw finishes:
         if self.input_locked and not self.projectile_in_flight and not self.double_throw_pending:
             self.input_locked = False
-            turn_should_end = True  # Now end turn
+            turn_should_end = True
 
         # Only switch turns if all throws are done and not pending
         if turn_should_end and not self.projectile_in_flight and not self.double_throw_pending and not self.input_locked:
@@ -154,16 +163,16 @@ class GameManager:
 
     def switch_turns(self):
         self.current_player, self.opponent = self.opponent, self.current_player
-        self.wind = random.randint(-10, 10)  # Wind changes each turn
+        self.wind = random.randint(-10, 10)
+        # Apply DOT at the start of the new current player's turn
+        if hasattr(self.current_player, "stink_bomb_turns") and self.current_player.stink_bomb_turns > 0:
+            self.current_player.hit(10)  # DOT damage
+            self.current_player.stink_bomb_turns -= 1
 
     def handle_projectile_hit(self, damage, target):
-        # If power throw is active, increase damage
-        if self.power_throw_active:
-            damage = int(damage * 2.0)
-            self.power_throw_active = False  # Only for one turn
-        if self.double_throw_active:
-            self.double_throw_pending = True  # Schedule a second throw
-            self.double_throw_active = False  # Only for one hit
+        if self.stink_bomb_active:
+            target.stink_bomb_turns = 3
+            self.stink_bomb_active = False
         target.hit(damage)
 
     def repeat_last_throw(self):
@@ -177,3 +186,6 @@ class GameManager:
         )
         self.projectiles.append(proj)
         self.projectile_in_flight = True
+
+    def heal_up(self, amount=20):
+        self.current_player.health = min(self.current_player.health + amount, 100)  # Assuming max health is 100

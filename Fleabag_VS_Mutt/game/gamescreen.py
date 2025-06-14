@@ -214,11 +214,10 @@ class GameScreen:
             self.game_manager.handle_event(event)
 
     def activate_booster(self, desc):
-        booster_key = desc.split()[0]  # e.g., "Double", "Power", etc.
+        booster_key = desc.split()[0]  # e.g., "Double", "Power", "Stink", etc.
         player = self.game_manager.current_player
 
         if booster_key in player.used_boosters:
-            # Optionally show a message: "Booster already used!"
             return
 
         player.used_boosters.add(booster_key)
@@ -227,6 +226,10 @@ class GameScreen:
             self.game_manager.double_throw_active = True
         elif booster_key == "Power":
             self.game_manager.power_throw_active = True
+        elif booster_key == "Stink":
+            self.game_manager.stink_bomb_active = True  # <-- Add this line
+        elif desc.startswith("Heal Up"):
+            self.game_manager.heal_up(20)
 
     def restart_game(self):
         # Reset game state for a new round

@@ -195,6 +195,14 @@ class GameManager:
             proj.draw(self.screen)
 
     def switch_turns(self):
+        # Reset boosters that should only last for one turn
+        self.double_throw = False
+        self.power_boost = 1.0
+        self.power_throw_active = False
+        self.double_throw_active = False
+        self.double_throw_pending = False
+        self.stink_bomb_active = False
+
         self.current_player, self.opponent = self.opponent, self.current_player
         self.wind = random.randint(-10, 10)
         # Apply DOT at the start of the new current player's turn

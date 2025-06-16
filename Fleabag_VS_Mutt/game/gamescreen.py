@@ -140,7 +140,7 @@ class GameScreen:
         
         font = pygame.font.SysFont(None, 80)
         text = font.render("Game Paused", True, (255, 255, 255))
-        text_rect = text.get_rect(center=(self.screen_width // 2, self.screen_height // 2))
+        text_rect = text.get_rect(center=(self.screen_width // 2, self.screen_height // 2 - 50))
         self.screen.blit(text, text_rect)
 
         # Draw "retry" and "main menu" options in yellow
@@ -157,6 +157,11 @@ class GameScreen:
         # Store the clickable areas for the retry and menu options
         self.retry_rect = retry_rect
         self.menu_rect = menu_rect
+
+        small_font = pygame.font.SysFont(None, 36)
+        small_text = small_font.render("\"Press ESC to resume\"", True, (200, 200, 200))
+        small_text_rect = small_text.get_rect(center=(self.screen_width // 2, self.screen_height // 2 + 20))
+        self.screen.blit(small_text, small_text_rect)
 
     def draw_health_bars(self):
         left_bar_pos = (75, 45)

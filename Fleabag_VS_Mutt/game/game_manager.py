@@ -5,9 +5,10 @@ from .player import Player
 from .projectile import Projectile
 
 class GameManager:
-    def __init__(self, screen, game_mode="1P"):
+    def __init__(self, screen, game_mode="1P", gravity=0.5):
         self.screen = screen
         self.game_mode = game_mode
+        self.gravity = gravity
 
         if game_mode == "1P":
             # AI is player1, human is player2
@@ -57,6 +58,10 @@ class GameManager:
         self.wall_heightened_active = False
         self.wall_heightened_turns = 0
         self.wall_heightened_pending = False 
+
+        # Track used boosters for each player
+        self.player1.used_boosters = set()
+        self.player2.used_boosters = set()
 
     def handle_event(self, event):
         if self.game_over:
@@ -168,7 +173,7 @@ class GameManager:
                 self.game_over = True
 
         # Handle double throw
-        if self.double_throw_pending and not self.projectile_in_flight and self.last_throw_valid:
+        if self.double_throw_pending and not self.projectile_in_flight:
             self.input_locked = True
             self.repeat_last_throw()
             self.double_throw_pending = False
@@ -286,3 +291,7 @@ class GameManager:
         )
         self.projectiles.append(proj)
         self.projectile_in_flight = True
+
+    def update_projectile(self, projectile):
+        projectile.vy += self.gravity
+        projectile.y += projectile.vy

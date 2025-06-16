@@ -4,7 +4,7 @@ import random
 from .game_manager import GameManager
 
 class GameScreen:
-    def __init__(self, screen, game_mode="1P", current_screen=None):
+    def __init__(self, screen, game_mode="1P", current_screen=None, background_path="assets/images/backgrounds/background_backyard.jpg", gravity=0.5):
         self.screen = screen
         self.screen_width = screen.get_width()
         self.screen_height = screen.get_height()
@@ -15,7 +15,8 @@ class GameScreen:
         self.main_menu_button = pygame.Rect(self.screen_width // 3 * 2 - 100, self.screen_height // 2 + 50, 200, 50)
 
         # Initialize game manager
-        self.game_manager = GameManager(screen, game_mode=game_mode)
+        self.gravity = gravity
+        self.game_manager = GameManager(screen, game_mode=game_mode, gravity=self.gravity)
         
         # Game state
         self.paused = False
@@ -23,7 +24,7 @@ class GameScreen:
         
         # Load background
         try:
-            self.background = pygame.image.load("assets/images/backgrounds/background_backyard.jpg").convert()
+            self.background = pygame.image.load(background_path).convert()
             self.hud_image = pygame.image.load("assets/images/backgrounds/hud_top_bar.png").convert_alpha()
             self.pointer_image = pygame.image.load("assets/images/character/pointer_arrow.png").convert_alpha()
 
@@ -31,6 +32,15 @@ class GameScreen:
             self.background = pygame.Surface((self.screen_width, self.screen_height))
             self.background.fill((20, 20, 40))  # fallback dark color
             self.pointer_image.fill((20, 20, 40))
+
+        # Load the wall image and x image
+        try:
+            self.wall_image = pygame.image.load("assets/images/wall.png").convert_alpha()
+            self.x_image = pygame.image.load("assets/images/x.png").convert_alpha()
+        except pygame.error:
+            print("Error loading wall image. Using fallback color.")
+            self.wall_image = None
+            self.x_image = None
 
         # Pause button rectangle (top-left)
         self.pause_button = pygame.Rect(10, 10, 50, 50)
@@ -41,17 +51,19 @@ class GameScreen:
         ]   
 
         self.boosters = [
-            {"rect": pygame.Rect(72, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice"},
-            {"rect": pygame.Rect(160, 80, 60, 50), "desc": "Power Throw: Increase the projectile throw power"},
-            {"rect": pygame.Rect(240, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns"},
-            {"rect": pygame.Rect(330, 80, 60, 60), "desc": "Heal Up: Restore health points"},
-            {"rect": pygame.Rect(410, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent"},
+            # Player 1 boosters
+            {"rect": pygame.Rect(72, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(160, 80, 60, 50), "desc": "Power Throw: Increase the projectile throw power", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(240, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(330, 80, 60, 60), "desc": "Heal Up: Restore health points", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(410, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent", "player": self.game_manager.player1},
 
-            {"rect": pygame.Rect(700, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice"},
-            {"rect": pygame.Rect(800, 80, 60, 60), "desc": "Power Throw: Increase the projectile throw power"},
-            {"rect": pygame.Rect(870, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns"},
-            {"rect": pygame.Rect(950, 80, 60, 60), "desc": "Heal Up: Restore health points"},
-            {"rect": pygame.Rect(1040, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent"},
+            # Player 2 boosters
+            {"rect": pygame.Rect(700, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(800, 80, 60, 60), "desc": "Power Throw: Increase the projectile throw power", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(870, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(950, 80, 60, 60), "desc": "Heal Up: Restore health points", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(1040, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent", "player": self.game_manager.player2},
         ]
     
     def draw_turn_indicator_triangle(self):
@@ -195,7 +207,9 @@ class GameScreen:
             # --- Booster click detection ---
             for booster in self.boosters:
                 if booster["rect"].collidepoint(mx, my):
-                    self.activate_booster(booster["desc"])
+                    # Check if the booster belongs to the current player
+                    if booster["player"] == self.game_manager.current_player:
+                        self.activate_booster(booster["desc"])
                     return  # Only one booster per click
 
             if self.paused:
@@ -210,7 +224,7 @@ class GameScreen:
                 self.paused = not self.paused
             elif not self.paused:
                 self.game_manager.handle_event(event)
-        
+    
         elif not self.paused:
             self.game_manager.handle_event(event)
 
@@ -361,6 +375,17 @@ class GameScreen:
         # --- Draw fences LAST so they appear on top ---
         self.draw_fences()
 
+        # --- Draw "x" on used boosters ---
+        for booster in self.boosters:
+            booster_key = booster["desc"].split()[0]  # Extract the booster name
+            booster_owner = booster["player"]  # Get the owner of the booster
+
+            # Check if the booster is used by its owner
+            if booster_key in booster_owner.used_boosters:
+                if self.x_image:
+                    x_rect = self.x_image.get_rect(center=booster["rect"].center)
+                    self.screen.blit(self.x_image, x_rect.topleft)
+
     def draw_winner(self):
         font = pygame.font.SysFont(None, 80)
         if self.game_manager.player1.health <= 0:
@@ -385,7 +410,13 @@ class GameScreen:
     def draw_fences(self):
         if self.game_manager.wall_heightened_active:
             for fence in self.game_manager.fence_rects:
-                pygame.draw.rect(self.screen, (0, 0, 0), fence)
+                if self.wall_image:
+                    # Scale the wall image to match the fence dimensions
+                    scaled_wall = pygame.transform.scale(self.wall_image, (fence.width, fence.height))
+                    self.screen.blit(scaled_wall, (fence.x, fence.y))
+                else:
+                    # Fallback: Draw a black rectangle if the image is not available
+                    pygame.draw.rect(self.screen, (0, 0, 0), fence)
 
     def draw_wind_indicator(self):
         rect_x, rect_y, rect_w, rect_h = 484, 90, 188, 51

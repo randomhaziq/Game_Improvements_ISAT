@@ -303,3 +303,10 @@ class GameManager:
     def update_projectile(self, projectile):
         projectile.vy += self.gravity
         projectile.y += projectile.vy
+
+    def restart_game(self):
+        # Re-initialize the GameManager (and optionally GameScreen if needed)
+        self.game_manager = GameManager(self.screen, self.game_mode, gravity=self.gravity)
+        # Reset any other GameScreen state if needed
+        self.paused = False
+        # If you have other state variables (like self.winner, etc.), reset them here

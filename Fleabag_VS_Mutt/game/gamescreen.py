@@ -254,9 +254,26 @@ class GameScreen:
             self.game_manager.wall_heightened_pending = True 
 
     def restart_game(self):
-        # Reset game state for a new round
-        self.game_manager = GameManager(self.screen)  # Re-initialize the game manager
-        self.paused = False  # Unpause the game
+        # Re-initialize the GameManager
+        self.game_manager = GameManager(self.screen, self.game_mode, gravity=self.gravity)
+        self.paused = False
+
+        # Re-create boosters list to reference the new player objects
+        self.boosters = [
+            # Player 1 boosters
+            {"rect": pygame.Rect(72, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(160, 80, 60, 50), "desc": "Power Throw: Increase the projectile throw power", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(240, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(330, 80, 60, 60), "desc": "Heal Up: Restore health points", "player": self.game_manager.player1},
+            {"rect": pygame.Rect(410, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent", "player": self.game_manager.player1},
+
+            # Player 2 boosters
+            {"rect": pygame.Rect(700, 80, 60, 60), "desc": "Double Throws: Throw the projectile twice", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(800, 80, 60, 60), "desc": "Power Throw: Increase the projectile throw power", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(870, 80, 60, 60), "desc": "Stink Bomb: Deal damage over turns", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(950, 80, 60, 60), "desc": "Heal Up: Restore health points", "player": self.game_manager.player2},
+            {"rect": pygame.Rect(1040, 80, 60, 60), "desc": "Wall Heightened: Increase the wall height for opponent", "player": self.game_manager.player2},
+        ]
 
     def return_to_main_menu(self):
         self.current_screen = "menu"  # Modify current_screen directly
@@ -366,9 +383,6 @@ class GameScreen:
         pygame.draw.rect(self.screen, (255, 255, 255), (bar1_x, bar_y, bar_width, bar_height))
         pygame.draw.rect(self.screen, (255, 255, 255), (bar2_x, bar_y, bar_width, bar_height))
 
-        if self.paused:
-            self.draw_pause_overlay()
-
         if self.game_manager.game_over:
             self.draw_winner()
         else:
@@ -377,7 +391,7 @@ class GameScreen:
 
         self.check_booster_hover()
 
-        # --- Draw fences LAST so they appear on top ---
+        # --- Draw fences ---
         self.draw_fences()
 
         # --- Draw "x" on used boosters ---
@@ -390,6 +404,10 @@ class GameScreen:
                 if self.x_image:
                     x_rect = self.x_image.get_rect(center=booster["rect"].center)
                     self.screen.blit(self.x_image, x_rect.topleft)
+
+        # --- DRAW PAUSE OVERLAY LAST ---
+        if self.paused:
+            self.draw_pause_overlay()
 
     def draw_winner(self):
         font = pygame.font.SysFont(None, 80)
